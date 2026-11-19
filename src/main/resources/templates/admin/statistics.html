@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thống kê - FashionStore</title><link rel="stylesheet" th:href="@{/css/style.css}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.stats-filter{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:18px 0 24px}.stats-filter label{display:grid;gap:6px;color:#555}.stats-filter input{padding:10px;border:1px solid #ddd;border-radius:8px}.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:26px 0 40px}.chart-card{background:#fff;border:1px solid #eee;border-radius:14px;padding:20px;box-shadow:0 3px 14px #0000000b;min-width:0}.chart-card h3{margin:0 0 18px}.chart-card canvas{width:100%;max-height:360px}@media(max-width:800px){.chart-grid{grid-template-columns:1fr}}
+</style></head>
+<body>
+<header th:replace="~{fragments/header :: navbar}"></header>
+<div th:replace="~{fragments/admin-nav :: nav('statistics')}"></div>
+<main class="container">
+<h2 class="section-title">Thống kê cửa hàng</h2>
+<form th:action="@{/admin/statistics}" method="get" class="stats-filter">
+<label>Từ ngày<input type="date" name="fromDate" th:value="${fromDate}" required></label>
+<label>Đến ngày<input type="date" name="toDate" th:value="${toDate}" required></label>
+<button type="submit" class="btn">Lọc thống kê</button><a th:href="@{/admin/statistics}" class="btn btn-outline">Tháng này</a>
+</form>
+<div class="stats-grid">
+<article class="stat-card"><span>Tổng sản phẩm</span><strong th:text="${productCount}">0</strong></article>
+<article class="stat-card"><span>Tổng người dùng</span><strong th:text="${userCount}">0</strong></article>
+<article class="stat-card"><span>Đơn hàng cần xử lý</span><strong th:text="${pendingCount}">0</strong></article>
+<article class="stat-card"><span>Đơn hoàn thành</span><strong th:text="${completedCount}">0</strong></article>
+<article class="stat-card"><span>Đơn đã hủy</span><strong th:text="${cancelledCount}">0</strong></article>
+<article class="stat-card stat-revenue"><span>Doanh thu trong khoảng đã chọn</span><strong th:text="${#numbers.formatDecimal(revenue, 1, 'POINT', 0, 'COMMA')} + ' ₫'">0 ₫</strong></article>
+</div>
+<p class="stats-note">Doanh thu chỉ tính đơn có trạng thái Hoàn thành trong khoảng thời gian đã chọn.</p>
+<section class="chart-grid">
+<div class="chart-card"><h3>Doanh thu theo ngày</h3><canvas id="revenueChart"></canvas></div>
+<div class="chart-card"><h3>Sản phẩm bán chạy</h3><canvas id="bestProductChart"></canvas></div>
+</section>
+</main><footer class="footer">© 2026 FashionStore</footer>
+<script th:inline="javascript">
+const dayLabels = [[${dayLabels}]];
+const revenueValues = [[${revenueValues}]].map(Number);
+const productLabels = [[${bestProductLabels}]];
+const productValues = [[${bestProductValues}]].map(Number);
+new Chart(document.getElementById('revenueChart'), {type:'bar',data:{labels:dayLabels,datasets:[{label:'Doanh thu (₫)',data:revenueValues}]},options:{responsive:true,plugins:{legend:{display:true}},scales:{y:{beginAtZero:true}}}});
+new Chart(document.getElementById('bestProductChart'), {type:'bar',data:{labels:productLabels,datasets:[{label:'Số lượng đã bán',data:productValues}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:true}},scales:{x:{beginAtZero:true}}}});
+</script></body></html>

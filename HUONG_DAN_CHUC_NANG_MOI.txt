@@ -1,0 +1,25 @@
+FASHIONSTORE - CAC CHUC NANG BO SUNG
+
+1. Tim kiem san pham theo ten/thuong hieu va khoang gia:
+   - Mo trang chu http://localhost:8080/
+   - Nhap ten/thuong hieu, Gia tu, Gia den, sau do bam Tim kiem.
+   - Bam Xoa loc de tro ve danh sach san pham moi nhat.
+
+2. Thong ke quan tri:
+   - Dang nhap tai khoan co quyen ADMIN.
+   - Mo http://localhost:8080/admin/statistics
+   - Hien thi tong san pham, nguoi dung, don hang, don hoan thanh, don huy va doanh thu don hoan thanh.
+   - Doanh thu chi tinh cac don co orderStatus = COMPLETED.
+
+3. Quan ly nguoi dung:
+   - Dang nhap tai khoan co quyen ADMIN.
+   - Mo http://localhost:8080/admin/users
+   - Tim theo ho ten, email hoac so dien thoai.
+   - Co the khoa/mo khoa tai khoan (ACTIVE/INACTIVE). Khong the tu khoa tai khoan dang dang nhap.
+
+4. Cac muc moi duoc them vao thanh quan tri: Thong ke va Nguoi dung.
+
+LUU Y:
+- Ban nay duoc bo sung tren ZIP nguon da gui. Da cap nhat mapping Cart.CreatedAt/UpdatedAt va User.CreatedAt theo ket qua SQL Server da kiem tra.
+- Khong chay lai scriptSQL.sql len database dang dung, vi script co the tao/chen lai du lieu.
+- Chua the chay Maven build trong moi truong tao file do khong tai duoc Maven tu Maven Central. Hay import ZIP vao Eclipse, sau do chay Maven > Update Project va Run project. Neu co loi, gui phan loi dau tien trong Console.

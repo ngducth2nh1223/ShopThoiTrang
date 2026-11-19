@@ -1,146 +1,62 @@
 package com.poly.entity;
 
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import java.math.BigDecimal;
-import java.util.Date;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.Temporal;
-import jakarta.persistence.TemporalType;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "Products")
+@Table(name = "Product")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Product {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    @Column(name = "productId")
+    private Integer productId;
 
-    @Column(nullable = false, length = 200)
-    private String name;
+    @Column(name = "categoryId")
+    private Integer categoryId;
 
-    @Column(length = 255)
-    private String image = "default-product.png";
+    @Column(name = "productName")
+    private String productName;
 
-    @Column(nullable = false, precision = 12, scale = 2)
-    private BigDecimal price;
-
-    @Column(nullable = false)
-    private Double discount = 0.0;
-
-    @Column(nullable = false)
-    private Integer quantity = 0;
-
-    @Column(length = 20)
-    private String size = "M";
-
-    @Column(columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "description")
     private String description;
 
-    @Temporal(TemporalType.TIMESTAMP)
-    @Column(name = "created_date")
-    private Date createdDate = new Date();
+    @Column(name = "brand")
+    private String brand;
 
-    private Boolean available = true;
+    @Column(name = "basePrice")
+    private BigDecimal basePrice;
 
-    @ManyToOne
-    @JoinColumn(name = "category_id", nullable = false)
-    private Category category;
+    @Column(name = "status")
+    private String status;
 
-    public Product() {
-    }
+    @Column(name = "discountId")
+    private Integer discountId;
 
-    public Integer getId() {
-        return id;
-    }
+    @Column(name = "createAt")      // đổi thành CreatedAt nếu DB ghi vậy
+    private LocalDateTime createdAt;
 
-    public void setId(Integer id) {
-        this.id = id;
-    }
+    @Column(name = "updateAt")      // đổi thành UpdatedAt nếu DB ghi vậy
+    private LocalDateTime updatedAt;
 
-    public String getName() {
-        return name;
-    }
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    private List<ProductImage> images = new ArrayList<>();
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getImage() {
-        return image;
-    }
-
-    public void setImage(String image) {
-        this.image = image;
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
-    public Double getDiscount() {
-        return discount;
-    }
-
-    public void setDiscount(Double discount) {
-        this.discount = discount;
-    }
-
-    public Integer getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
-    }
-
-    public String getSize() {
-        return size;
-    }
-
-    public void setSize(String size) {
-        this.size = size;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Date getCreatedDate() {
-        return createdDate;
-    }
-
-    public void setCreatedDate(Date createdDate) {
-        this.createdDate = createdDate;
-    }
-
-    public Boolean getAvailable() {
-        return available;
-    }
-
-    public void setAvailable(Boolean available) {
-        this.available = available;
-    }
-
-    public Category getCategory() {
-        return category;
-    }
-
-    public void setCategory(Category category) {
-        this.category = category;
+    /** Ảnh chính, nếu không có thì lấy ảnh đầu tiên */
+    public String getMainImageUrl() {
+        return images.stream()
+                .filter(i -> Boolean.TRUE.equals(i.getMain()))
+                .findFirst()
+                .or(() -> images.stream().findFirst())
+                .map(ProductImage::getImageUrl)
+                .orElse(null);
     }
 }

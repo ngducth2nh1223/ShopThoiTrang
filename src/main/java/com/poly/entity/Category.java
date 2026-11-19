@@ -1,34 +1,33 @@
 package com.poly.entity;
 
-import java.util.List;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Categories")
+@Table(name = "CATEGORY")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    @Column(name = "categoryId")
+    private Integer categoryId;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String name;
+    @Column(name = "parentCategoryId")
+    private Integer parentCategoryId;
 
-    @OneToMany(mappedBy = "category")
-    private List<Product> products;
+    @Column(name = "categoryName")
+    private String categoryName;
 
-    public Category() {}
+    @Column(name = "description")
+    private String description;
 
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public List<Product> getProducts() { return products; }
-    public void setProducts(List<Product> products) { this.products = products; }
+    @Column(name = "status")
+    private String status;
+
 }

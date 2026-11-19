@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Quản lý người dùng - FashionStore</title><link rel="stylesheet" th:href="@{/css/style.css}"></head>
+<body><header th:replace="~{fragments/header :: navbar}"></header><div th:replace="~{fragments/admin-nav :: nav('users')}"></div>
+<main class="container"><h2 class="section-title">Quản lý người dùng</h2>
+<div class="flash flash-ok" th:if="${adminMessage}" th:text="${adminMessage}"></div><div class="flash flash-err" th:if="${adminError}" th:text="${adminError}"></div>
+<form th:action="@{/admin/users}" method="get" class="search-form"><input type="text" name="keyword" th:value="${keyword}" placeholder="Tìm theo họ tên, email hoặc số điện thoại"><button type="submit" class="btn">Tìm kiếm</button><a th:href="@{/admin/users}" class="btn btn-outline">Xóa lọc</a></form>
+<p th:if="${#lists.isEmpty(users)}" class="empty">Không tìm thấy người dùng.</p>
+<div class="table-wrap" th:unless="${#lists.isEmpty(users)}"><table class="cart-table"><thead><tr><th>ID</th><th>Họ tên</th><th>Email</th><th>Số điện thoại</th><th>Quyền</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+<tbody><tr th:each="u : ${users}"><td th:text="${u.userId}">1</td><td th:text="${u.fullName}">Tên</td><td th:text="${u.email}">email</td><td th:text="${u.phone != null ? u.phone : '-'}">-</td>
+<td><span th:text="${roleNames[u.roleId] == 'EMPLOYEE' ? 'Nhân viên' : (roleNames[u.roleId] == 'CUSTOMER' ? 'Khách hàng' : 'Admin')}">Khách hàng</span><form th:if="${roleNames[u.roleId] != 'ADMIN' and !#lists.isEmpty(roles)}" th:action="@{/admin/users/{id}/role(id=${u.userId})}" method="post" style="display:flex;gap:6px;margin-top:6px"><select name="roleName"><option th:each="r : ${roles}" th:value="${r.roleName}" th:text="${r.roleName == 'EMPLOYEE' ? 'Nhân viên' : 'Khách hàng'}" th:selected="${r.roleId == u.roleId}"></option></select><button class="btn btn-sm" type="submit">Lưu quyền</button></form></td>
+<td><span class="tag" th:text="${u.status}" th:classappend="${'ACTIVE'.equalsIgnoreCase(u.status)} ? ' st-COMPLETED' : ' st-CANCELLED'">ACTIVE</span></td>
+<td><form th:action="@{/admin/users/{id}/status(id=${u.userId})}" method="post" onsubmit="return confirm('Bạn chắc chắn muốn thay đổi trạng thái tài khoản này?')"><button type="submit" class="btn btn-sm" th:classappend="${'ACTIVE'.equalsIgnoreCase(u.status)} ? ' btn-outline'" th:text="${'ACTIVE'.equalsIgnoreCase(u.status)} ? 'Khóa tài khoản' : 'Mở khóa'">Thay đổi</button></form></td></tr></tbody></table></div>
+<p class="stats-note">Tài khoản Admin được bảo vệ, không thể khóa hoặc đổi quyền tại màn hình này.</p>
+</main><footer class="footer">© 2026 FashionStore</footer></body></html>

@@ -1,139 +1,120 @@
 package com.poly.controller;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
-import com.poly.dao.OrderDAO;
-import com.poly.entity.Order;
-import com.poly.entity.OrderDetail;
+import com.poly.DTO.CheckoutForm;
+import com.poly.entity.Address;
+import com.poly.entity.CartItem;
+import com.poly.entity.Orders;
 import com.poly.entity.User;
-import com.poly.utils.CartItem;
-
-import jakarta.servlet.http.HttpSession;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import com.poly.exception.OrderException;
+import com.poly.service.CartService;
+import com.poly.service.OrderService;
+import java.math.BigDecimal;
+import java.security.Principal;
+import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
+@RequestMapping("/checkout")
 public class CheckoutController {
 
-    @Autowired
-    private OrderDAO orderDAO;
+	private final CartService cartService;
+	private final OrderService orderService;
 
-    @PostMapping("/checkout")
-    public String checkout(
-            @RequestParam("address") String address,
-            @RequestParam("phone") String phone,
-            @RequestParam(value = "note", required = false) String note,
-            HttpSession session,
-            Model model) {
+	public CheckoutController(CartService cartService, OrderService orderService) {
+		this.cartService = cartService;
+		this.orderService = orderService;
+	}
 
-        // 1. Kiểm tra đăng nhập
-        User user = (User) session.getAttribute("user");
+	@GetMapping
+	public String page(Model model, Principal principal, RedirectAttributes redirect) {
+		List<CartItem> items = cartService.getItems(principal.getName());
+		if (items.isEmpty()) {
+			redirect.addFlashAttribute("cartError", "Giỏ hàng đang trống");
+			return "redirect:/cart";
+		}
+		List<Address> addresses = orderService.getAddresses(principal.getName());
+		CheckoutForm form = new CheckoutForm();
+		if (!addresses.isEmpty()) {
+			form.setAddressId(addresses.get(0).getAddressId()); // mặc định chọn địa chỉ đầu tiên
+		}
+		fill(model, items, addresses, principal.getName());
+		model.addAttribute("form", form);
+		return "checkout";
+	}
 
-        if (user == null) {
-            return "redirect:/login";
-        }
+	@PostMapping
+	public String place(@ModelAttribute("form") CheckoutForm form, BindingResult result, Model model,
+			Principal principal, RedirectAttributes redirect) {
+		validate(form, result);
+		if (!result.hasErrors()) {
+			try {
+				Orders order = orderService.placeOrder(principal.getName(), form);
+				if ("E_WALLET".equals(form.getPaymentMethod())) {
+					return "redirect:/payment/vnpay/pay/" + order.getOrderCode(); // chuyển sang VNPay
+				}
+				redirect.addFlashAttribute("orderMessage", "Đặt hàng thành công! Mã đơn hàng: " + order.getOrderCode());
+				return "redirect:/orders/" + order.getOrderCode();
+			} catch (OrderException e) {
+				model.addAttribute("orderError", e.getMessage());
+			}
+		}
+		List<CartItem> items = cartService.getItems(principal.getName());
+		if (items.isEmpty()) {
+			redirect.addFlashAttribute("cartError", "Giỏ hàng đang trống");
+			return "redirect:/cart";
+		}
+		fill(model, items, orderService.getAddresses(principal.getName()), principal.getName());
+		return "checkout";
+	}
 
-        // 2. Lấy giỏ hàng
-        @SuppressWarnings("unchecked")
-        Map<Integer, CartItem> cart =
-                (Map<Integer, CartItem>) session.getAttribute("cart");
+	private void fill(Model model, List<CartItem> items, List<Address> addresses, String email) {
+		BigDecimal total = items.stream().map(CartItem::getLineTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+		BigDecimal fee = orderService.shippingFee(total);
+		model.addAttribute("items", items);
+		model.addAttribute("addresses", addresses);
+		model.addAttribute("total", total);
+		model.addAttribute("shippingFee", fee);
+		model.addAttribute("finalAmount", total.add(fee));
 
-        // 3. Kiểm tra giỏ hàng
-        if (cart == null || cart.isEmpty()) {
-            return "redirect:/home";
-        }
+		User user = orderService.getUser(email);
+		if (user != null) {
+			model.addAttribute("profileName", blankToNull(user.getFullName()));
+			model.addAttribute("profilePhone", blankToNull(user.getPhone()));
+		}
+	}
 
-        // 4. Tạo Order
-        Order order = new Order();
+	private String blankToNull(String s) {
+		return (s == null || s.isBlank()) ? null : s.trim();
+	}
 
-        order.setUser(user);
-        order.setAddress(address);
-        order.setPhone(phone);
-        order.setNote(note);
-        order.setCreatedDate(new Date());
-        order.setStatus("PENDING");
+	private void validate(CheckoutForm f, BindingResult r) {
+		if (!List.of("COD", "BANK_TRANSFER", "E_WALLET").contains(f.getPaymentMethod())) {
+			r.rejectValue("paymentMethod", "invalid", "Phương thức thanh toán không hợp lệ");
+		}
+		if (f.getAddressId() == null) { // địa chỉ mới thì bắt buộc nhập đủ
+			require(r, "receiverName", f.getReceiverName(), "Vui lòng nhập họ tên người nhận");
+			require(r, "phone", f.getPhone(), "Vui lòng nhập số điện thoại");
+			if (f.getPhone() != null && !f.getPhone().isBlank()
+					&& !f.getPhone().trim().matches("^(0|\\+84)\\d{9,10}$")) {
+				r.rejectValue("phone", "invalid", "Số điện thoại không hợp lệ");
+			}
+			require(r, "province", f.getProvince(), "Vui lòng nhập tỉnh/thành phố");
+			require(r, "district", f.getDistrict(), "Vui lòng nhập quận/huyện");
+			require(r, "ward", f.getWard(), "Vui lòng nhập phường/xã");
+			require(r, "addressDetail", f.getAddressDetail(), "Vui lòng nhập số nhà, tên đường");
+		}
+	}
 
-        // 5. Tạo danh sách OrderDetail
-        List<OrderDetail> details = new ArrayList<>();
-
-        for (CartItem item : cart.values()) {
-
-            if (item.getProduct() == null) {
-                continue;
-            }
-
-            OrderDetail detail = new OrderDetail();
-
-            detail.setOrder(order);
-            detail.setProduct(item.getProduct());
-            detail.setQuantity(item.getQuantity());
-
-            // Giá gốc
-            BigDecimal originalPrice = item.getProduct().getPrice();
-
-            if (originalPrice == null) {
-                originalPrice = BigDecimal.ZERO;
-            }
-
-            // Phần trăm giảm giá
-            Double discount = item.getProduct().getDiscount();
-
-            if (discount == null) {
-                discount = 0.0;
-            }
-
-            // Tính giá sau giảm
-            BigDecimal discountRate = BigDecimal.valueOf(discount);
-
-            BigDecimal priceAfterDiscount = originalPrice
-                    .multiply(BigDecimal.ONE.subtract(discountRate))
-                    .setScale(2, RoundingMode.HALF_UP);
-
-            detail.setPrice(priceAfterDiscount);
-
-            details.add(detail);
-        }
-
-        // Không có sản phẩm hợp lệ
-        if (details.isEmpty()) {
-            model.addAttribute("error", "Giỏ hàng không có sản phẩm hợp lệ!");
-            return "cart";
-        }
-
-        // 6. Gán OrderDetails cho Order
-        order.setOrderDetails(details);
-
-        // 7. Lưu đơn hàng
-        try {
-
-            orderDAO.save(order);
-
-            // 8. Xóa giỏ hàng sau khi đặt hàng thành công
-            session.removeAttribute("cart");
-
-            model.addAttribute("message", "Đặt hàng thành công!");
-
-            return "checkout-success";
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            model.addAttribute(
-                    "error",
-                    "Có lỗi xảy ra khi đặt hàng: " + e.getMessage()
-            );
-
-            return "cart";
-        }
-    }
+	private void require(BindingResult r, String field, String value, String message) {
+		if (value == null || value.isBlank()) {
+			r.rejectValue(field, "required", message);
+		}
+	}
 }

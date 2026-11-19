@@ -1,78 +1,35 @@
 package com.poly.entity;
-
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import java.math.BigDecimal;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-
 @Entity
-@Table(name = "OrderDetails")
+@Table(name = "ORDER_DETAIL")
+@Getter @Setter @NoArgsConstructor
 public class OrderDetail {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    @Column(name = "orderDetailId")
+    private Integer orderDetailId;
 
-    @ManyToOne
-    @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    @Column(name = "orderId")
+    private Integer orderId;
 
-    @ManyToOne
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variantId")
+    private ProductVariant variant;
 
-    @Column(name = "price", precision = 12, scale = 2, nullable = false)
-    private BigDecimal price;
-
-    @Column(name = "quantity", nullable = false)
+    @Column(name = "quantity")
     private Integer quantity;
 
-    public OrderDetail() {
-    }
+    @Column(name = "unitPrice")
+    private BigDecimal unitPrice;
 
-    public Integer getId() {
-        return id;
-    }
+    @Column(name = "subTotal")
+    private BigDecimal subTotal;
 
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public Order getOrder() {
-        return order;
-    }
-
-    public void setOrder(Order order) {
-        this.order = order;
-    }
-
-    public Product getProduct() {
-        return product;
-    }
-
-    public void setProduct(Product product) {
-        this.product = product;
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
-    public Integer getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
-    }
+    @Column(name = "DiscountAmount")
+    private BigDecimal discountAmount;
 }
